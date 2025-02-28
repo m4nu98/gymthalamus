@@ -1,9 +1,6 @@
-"use client"
-
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { Providers } from '@/components/providers'
-import { usePathname } from 'next/navigation'
+import { Toaster } from "sonner"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -12,14 +9,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es">
       <body className={inter.className}>
-        <div className={pathname === "/" ? "" : ""}>
-          {children}
-        </div>
+        {children}
+        <Toaster richColors />
       </body>
     </html>
   )

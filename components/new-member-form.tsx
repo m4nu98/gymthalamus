@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback, memo } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -25,12 +25,243 @@ import { ChevronRight, ChevronLeft, User, Building2, CreditCard } from 'lucide-r
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+
+// Mover FormStep fuera del componente principal
+const FormStep = memo(({ 
+  step, 
+  formData, 
+  errors, 
+  isLoading, 
+  handleChange, 
+  paymentStatus, 
+  setPaymentStatus
+}: { 
+  step: number;
+  formData: any;
+  errors: any;
+  isLoading: boolean;
+  handleChange: (event: React.ChangeEvent<HTMLInputElement> | string, name?: string) => void;
+  paymentStatus: string;
+  setPaymentStatus: (value: "paid" | "pending") => void;
+}) => {
+  switch (step) {
+    case 1:
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="grid gap-6"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">Nombre</Label>
+              <Input 
+                id="firstName" 
+                name="nombre" 
+                value={formData.nombre} 
+                onChange={handleChange}  
+                placeholder="Juan" 
+                required 
+                disabled={isLoading} 
+              />
+              {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Apellido</Label>
+              <Input 
+                id="lastName" 
+                name="apellido"
+                placeholder="Pérez" 
+                value={formData.apellido} 
+                onChange={handleChange} 
+                required 
+                disabled={isLoading}
+              /> 
+              {errors.apellido && <p className="text-sm text-red-500 mt-1">{errors.apellido}</p>}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              placeholder="juan@ejemplo.com"
+              value={formData.email}
+              onChange={handleChange}
+              type="email"
+              required
+              disabled={isLoading}
+            />
+            {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Teléfono</Label>
+            <Input
+              id="phone"
+              name="telefono"
+              value={formData.telefono}
+              onChange={handleChange}
+              placeholder="+54 11 1234-5678"
+              type="tel"
+              required
+              disabled={isLoading}
+            />
+            {errors.telefono && <p className="text-sm text-red-500 mt-1">{errors.telefono}</p>}
+          </div>
+        </motion.div>
+      )
+    case 2:
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="grid gap-6"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="branch">Sucursal</Label>
+            <Select 
+              required
+              value={formData.sucursal}
+              onValueChange={(value) => handleChange(value, 'sucursal')}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar sucursal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="norte">Sucursal Norte</SelectItem>
+                <SelectItem value="sur">Sucursal Sur</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.sucursal && <p className="text-sm text-red-500 mt-1">{errors.sucursal}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="plan">Plan</Label>
+            <Select 
+              required
+              value={formData.plan}
+              onValueChange={(value) => handleChange(value, 'plan')}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar plan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2days">2 días</SelectItem>
+                <SelectItem value="3days">3 días</SelectItem>
+                <SelectItem value="5days">5 días</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.plan && <p className="text-sm text-red-500 mt-1">{errors.plan}</p>}
+          </div>
+        </motion.div>
+      )
+    case 3:
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="grid gap-6"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="paymentStatus">Estado de Pago</Label>
+            <Select 
+              required 
+              value={paymentStatus} 
+              onValueChange={setPaymentStatus}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="paid">Pagado</SelectItem>
+                <SelectItem value="pending">Pendiente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className={cn(
+            "grid gap-6 transition-all duration-300",
+            paymentStatus === "paid" 
+              ? "grid-rows-[1fr] opacity-100" 
+              : "grid-rows-[0fr] opacity-0"
+          )}>
+            <div className="overflow-hidden">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="paymentDate">Fecha de Pago</Label>
+                  <Input
+                    id="paymentDate"
+                    name="fechaPago"
+                    type="date"
+                    value={formData.fechaPago}
+                    onChange={handleChange}
+                    max={new Date().toISOString().split('T')[0]}
+                    disabled={isLoading}
+                    required={paymentStatus === "paid"}
+                  />
+                  {errors.fechaPago && <p className="text-sm text-red-500 mt-1">{errors.fechaPago}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentMethod">Método de Pago</Label>
+                  <Select 
+                    required={paymentStatus === "paid"}
+                    value={formData.metodoPago}
+                    onValueChange={(value) => handleChange(value, 'metodoPago')}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar método" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Efectivo</SelectItem>
+                      <SelectItem value="card">Tarjeta</SelectItem>
+                      <SelectItem value="transfer">Transferencia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.metodoPago && <p className="text-sm text-red-500 mt-1">{errors.metodoPago}</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )
+    default:
+      return null
+  }
+})
+
+FormStep.displayName = 'FormStep'
 
 export function NewMemberForm() {
   const [step, setStep] = useState(1)
   const [direction, setDirection] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "pending">("")
+  const [errors, setErrors] = useState({
+    nombre: '',
+    apellido: '',
+    email: '',
+    telefono: '',
+    sucursal: '',
+    plan: '',
+    metodoPago: '',
+    fechaPago: ''
+  })
+  const [formData, setFormData] = useState({
+    nombre: '',
+    apellido: '',
+    email: '',
+    telefono: '',
+    sucursal: '',
+    plan: '', // Añadiendo el campo plan que faltaba
+    metodoPago: '',
+    fechaPago: ''
+  });
+
   const router = useRouter()
 
   const steps = [
@@ -56,9 +287,144 @@ export function NewMemberForm() {
     })
   }
 
+  const validateStep = (currentStep: number): boolean => {
+    let isValid = true;
+    const newErrors = { ...errors };
+
+    switch (currentStep) {
+      case 1:
+        // Validar datos personales
+        if (!formData.nombre.trim()) {
+          newErrors.nombre = 'El nombre es requerido';
+          isValid = false;
+        }
+        if (!formData.apellido.trim()) {
+          newErrors.apellido = 'El apellido es requerido';
+          isValid = false;
+        }
+        if (!formData.email.trim()) {
+          newErrors.email = 'El email es requerido';
+          isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          newErrors.email = 'Email no válido';
+          isValid = false;
+        }
+        if (!formData.telefono.trim()) {
+          newErrors.telefono = 'El teléfono es requerido';
+          isValid = false;
+        }
+        break;
+      case 2:
+        // Validar sucursal y plan
+        if (!formData.sucursal) {
+          newErrors.sucursal = 'Debe seleccionar una sucursal';
+          isValid = false;
+        }
+        if (!formData.plan) {
+          newErrors.plan = 'Debe seleccionar un plan';
+          isValid = false;
+        }
+        break;
+      case 3:
+        // Validar información de pago
+        if (!paymentStatus) {
+          toast.error("Error", {
+            description: "Por favor seleccione el estado de pago"
+          });
+          isValid = false;
+        } else if (paymentStatus === 'paid') {
+          if (!formData.metodoPago) {
+            newErrors.metodoPago = 'Debe seleccionar un método de pago';
+            isValid = false;
+          }
+          if (!formData.fechaPago) {
+            newErrors.fechaPago = 'Debe ingresar la fecha de pago';
+            isValid = false;
+          } else if (new Date(formData.fechaPago) > new Date()) {
+            newErrors.fechaPago = 'La fecha de pago no puede ser futura';
+            isValid = false;
+          }
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  async function onSubmit(event: React.SyntheticEvent) {
+    event.preventDefault();
+    
+    if (step !== 3) {
+      return;
+    }
+
+    // Validar antes de enviar
+    if (!validateStep(step)) {
+      return;
+    }
+    
+    setIsLoading(true);
+
+    try {
+      const dataToSend = {
+        ...formData,
+        paymentStatus,
+        metodoPago: paymentStatus === 'paid' ? formData.metodoPago : null,
+        fechaPago: paymentStatus === 'paid' && formData.fechaPago ? formData.fechaPago : null,
+      };
+
+      console.log('Enviando datos:', dataToSend);
+
+      const response = await fetch('/api/member', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
+      });
+
+      const data = await response.json();
+      console.log('Respuesta del servidor:', data);
+
+      if (!response.ok) {
+        // Verificar si el error es por email duplicado
+        if (data.error === 'El email ya está registrado') {
+          toast.error("Error", {
+            description: "El email ya se encuentra registrado. Intente con otro"
+          });
+          // Regresar al paso 1 para corregir el email
+          setStep(1);
+          setErrors(prev => ({
+            ...prev,
+            email: 'El email ya se encuentra registrado'
+          }));
+          return;
+        }
+        throw new Error(data.error || 'Error al crear el miembro');
+      }
+
+      toast.success("¡Éxito!", {
+        description: "El miembro ha sido registrado correctamente"
+      });
+
+      router.push('/admin/members');
+      router.refresh();
+    } catch (error) {
+      console.error('Error detallado:', error);
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Error al crear el miembro"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const handleNext = () => {
-    setDirection(1)
-    setStep(step + 1)
+    if (validateStep(step)) {
+      setDirection(1)
+      setStep(step + 1)
+    }
   }
 
   const handlePrevious = () => {
@@ -66,166 +432,33 @@ export function NewMemberForm() {
     setStep(step - 1)
   }
 
-  async function onSubmit(event: React.SyntheticEvent) {
-    event.preventDefault()
-    setIsLoading(true)
+  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement> | string, name?: string) => {
+    let fieldName: string;
+    let value: string;
 
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 3000)
-  }
-
-  const FormStep = ({ step }: { step: number }) => {
-    switch (step) {
-      case 1:
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="grid gap-6"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Nombre</Label>
-                <Input id="firstName" placeholder="Juan" required disabled={isLoading} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Apellido</Label>
-                <Input id="lastName" placeholder="Pérez" required disabled={isLoading} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                placeholder="juan@ejemplo.com"
-                type="email"
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Teléfono</Label>
-              <Input
-                id="phone"
-                placeholder="+54 11 1234-5678"
-                type="tel"
-                disabled={isLoading}
-              />
-            </div>
-          </motion.div>
-        )
-      case 2:
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="grid gap-6"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="branch">Sucursal</Label>
-              <Select required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar sucursal" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="norte">Sucursal Norte</SelectItem>
-                  <SelectItem value="sur">Sucursal Sur</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="plan">Plan</Label>
-              <Select required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2days">2 días</SelectItem>
-                  <SelectItem value="3days">3 días</SelectItem>
-                  <SelectItem value="5days">5 días</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Fecha de Inicio</Label>
-              <Input
-                id="startDate"
-                type="date"
-                disabled={isLoading}
-                required
-              />
-            </div>
-          </motion.div>
-        )
-      case 3:
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="grid gap-6"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="paymentStatus">Estado de Pago</Label>
-              <Select 
-                required 
-                value={paymentStatus} 
-                onValueChange={setPaymentStatus}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="paid">Pagado</SelectItem>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className={cn(
-              "grid gap-6 transition-all duration-300",
-              paymentStatus === "paid" 
-                ? "grid-rows-[1fr] opacity-100" 
-                : "grid-rows-[0fr] opacity-0"
-            )}>
-              <div className="overflow-hidden">
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentDate">Fecha de Pago</Label>
-                    <Input
-                      id="paymentDate"
-                      type="date"
-                      disabled={isLoading}
-                      required={paymentStatus === "paid"}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentMethod">Método de Pago</Label>
-                    <Select required={paymentStatus === "paid"}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar método" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cash">Efectivo</SelectItem>
-                        <SelectItem value="card">Tarjeta</SelectItem>
-                        <SelectItem value="transfer">Transferencia</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )
-      default:
-        return null
+    if (typeof event === 'string' && name) {
+      // Para Select components
+      fieldName = name;
+      value = event;
+    } else if ('target' in event) {
+      // Para Input components
+      fieldName = event.target.name;
+      value = event.target.value;
+    } else {
+      return;
     }
-  }
+
+    setFormData(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+
+    // Limpiar el error cuando el usuario empiece a escribir
+    setErrors(prev => ({
+      ...prev,
+      [fieldName]: ''
+    }));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -281,9 +514,25 @@ export function NewMemberForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form id="newMemberForm" onSubmit={onSubmit}>
+          <form 
+            id="newMemberForm" 
+            onSubmit={onSubmit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+              }
+            }}
+          >
             <AnimatePresence mode="wait" initial={false} custom={direction}>
-              <FormStep step={step} />
+              <FormStep 
+                step={step}
+                formData={formData}
+                errors={errors}
+                isLoading={isLoading}
+                handleChange={handleChange}
+                paymentStatus={paymentStatus}
+                setPaymentStatus={setPaymentStatus}
+              />
             </AnimatePresence>
           </form>
         </CardContent>
@@ -340,6 +589,5 @@ export function NewMemberForm() {
         </CardFooter>
       </Card>
     </div>
-  )
-}
+  )}
 
