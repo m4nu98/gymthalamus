@@ -7,18 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Sucursal {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique @db.VarChar(100)
+  direccion String   @db.VarChar(255)
+  telefono  String   @db.VarChar(20)
+  miembros  Member[]
+}
+
 model Member {
-  id          String    @id @default(uuid())
-  nombre      String
-  apellido    String
-  email       String    @unique
-  telefono    String
-  sucursal    String
-  plan        String
-  fechaInicio DateTime
-  estado      String    @default("pending")
-  metodoPago  String?
-  fechaPago   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                  Int       @id @default(autoincrement())
+  nombre              String    @db.VarChar(100)
+  apellido            String    @db.VarChar(100)
+  genero              String    @db.VarChar(50)
+  fecha_nacimiento    DateTime  @db.Date
+  email               String    @unique @db.VarChar(100)
+  telefono            String    @db.VarChar(20)
+  estado              String    @default("pendiente") @db.VarChar(20)
+  sucursal            Sucursal? @relation(fields: [sucursal_id], references: [id], onDelete: SetNull)
+  sucursal_id         Int?
+  plan                String    @db.VarChar(50)
+  reset_token         String?   @unique @db.VarChar(255)
+  reset_token_expires DateTime?
+  password_hash       String?   @db.VarChar(255)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }

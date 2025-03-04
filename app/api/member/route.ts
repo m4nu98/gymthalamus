@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     console.log('Datos recibidos:', JSON.stringify(data, null, 2))
     
     // Validar que todos los campos requeridos estén presentes
-    const requiredFields = ['nombre', 'apellido', 'email', 'telefono', 'sucursal', 'plan']
+    const requiredFields = ['nombre', 'apellido', 'email', 'telefono', 'fecha_nacimiento', 'genero', 'sucursal_id', 'plan']
     const missingFields = requiredFields.filter(field => !data[field])
     
     if (missingFields.length > 0) {
@@ -29,6 +29,26 @@ export async function POST(request: Request) {
     }
 
     try {
+      // Validar fecha de nacimiento
+      const fecha_nacimiento = new Date(data.fecha_nacimiento)
+      if (isNaN(fecha_nacimiento.getTime())) {
+        throw new Error('Fecha de nacimiento inválida')
+      }
+
+      // Verificar que la sucursal existe
+      const sucursal = await db.sucursal.findUnique({
+        where: {
+          id: data.sucursal_id
+        }
+      })
+
+      if (!sucursal) {
+        return NextResponse.json(
+          { error: 'La sucursal seleccionada no existe' },
+          { status: 400 }
+        )
+      }
+      
       // Validar fecha de pago si existe
       let fechaPago = null
       if (data.paymentStatus === 'paid' && data.fechaPago) {
@@ -55,15 +75,16 @@ export async function POST(request: Request) {
         )
       }
 
-      // Preparar los datos para la creación usando la fecha actual como fechaInicio
+      // Preparar los datos para la creación
       const memberData = {
         nombre: data.nombre,
         apellido: data.apellido,
         email: data.email,
         telefono: data.telefono,
-        sucursal: data.sucursal,
+        fecha_nacimiento,
+        genero: data.genero,
+        sucursal_id: data.sucursal_id,
         plan: data.plan,
-        fechaInicio: new Date(), // Usando la fecha actual
         estado: data.paymentStatus,
         metodoPago: data.metodoPago || null,
         fechaPago
@@ -72,7 +93,10 @@ export async function POST(request: Request) {
       console.log('Intentando crear miembro con datos:', JSON.stringify(memberData, null, 2))
 
       const newMember = await db.member.create({
-        data: memberData
+        data: memberData,
+        include: {
+          sucursal: true
+        }
       })
 
       console.log('Miembro creado exitosamente:', newMember)
@@ -106,17 +130,33 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const members = await db.member.findMany({
+    console.log('Iniciando búsqueda de datos...')
+    
+    const sucursales = await db.sucursal.findMany({
       orderBy: {
-        createdAt: 'desc'
+        nombre: 'asc'
       }
     })
     
-    return NextResponse.json(members)
+    console.log('Datos de sucursales encontradas:', JSON.stringify(sucursales, null, 2))
+    
+    const members = await db.member.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        sucursal: true
+      }
+    })
+    
+    const response = { members, sucursales }
+    console.log('Respuesta completa:', JSON.stringify(response, null, 2))
+    
+    return NextResponse.json(response)
   } catch (error) {
-    console.error('Error al obtener miembros:', error)
+    console.error('Error detallado al obtener datos:', error)
     return NextResponse.json(
-      { error: 'Error al obtener los miembros' },
+      { error: 'Error al obtener los datos' },
       { status: 500 }
     )
   }

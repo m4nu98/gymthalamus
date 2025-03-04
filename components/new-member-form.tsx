@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, memo } from "react"
+import { useState, useCallback, memo, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -27,6 +27,30 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
+type Sucursal = {
+  id: number
+  nombre: string
+  direccion: string
+  telefono: string
+}
+
+interface FormData {
+  nombre: string
+  apellido: string
+  email: string
+  telefono: string
+  fecha_nacimiento: string
+  genero: string
+  sucursal_id: number | null
+  plan: string
+  metodoPago: string
+  fechaPago: string
+}
+
+interface FormErrors {
+  [key: string]: string
+}
+
 // Mover FormStep fuera del componente principal
 const FormStep = memo(({ 
   step, 
@@ -35,16 +59,27 @@ const FormStep = memo(({
   isLoading, 
   handleChange, 
   paymentStatus, 
-  setPaymentStatus
+  setPaymentStatus,
+  sucursales
 }: { 
   step: number;
-  formData: any;
-  errors: any;
+  formData: FormData;
+  errors: FormErrors;
   isLoading: boolean;
   handleChange: (event: React.ChangeEvent<HTMLInputElement> | string, name?: string) => void;
   paymentStatus: string;
   setPaymentStatus: (value: "paid" | "pending") => void;
+  sucursales: Sucursal[];
 }) => {
+  // Add debug log for sucursales prop
+  console.log('Sucursales recibidas en FormStep:', sucursales)
+  console.log('Sucursales completas:', JSON.stringify(sucursales, null, 2))
+  
+  // Get selected sucursal data
+  const selectedSucursal = sucursales.find(s => s.id === parseInt(formData.sucursal_id?.toString() || '', 10));
+  console.log('Sucursal seleccionada:', selectedSucursal)
+  console.log('Sucursal seleccionada:', JSON.stringify(selectedSucursal, null, 2))
+
   switch (step) {
     case 1:
       return (
@@ -83,6 +118,42 @@ const FormStep = memo(({
               {errors.apellido && <p className="text-sm text-red-500 mt-1">{errors.apellido}</p>}
             </div>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+              <Input
+                id="birthDate"
+                name="fecha_nacimiento"
+                type="date"
+                value={formData.fecha_nacimiento}
+                onChange={handleChange}
+                max={new Date().toISOString().split('T')[0]}
+                required
+                disabled={isLoading}
+              />
+              {errors.fecha_nacimiento && <p className="text-sm text-red-500 mt-1">{errors.fecha_nacimiento}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gender">Género</Label>
+              <Select
+                required
+                value={formData.genero}
+                onValueChange={(value) => handleChange(value, 'genero')}
+              >
+                <SelectTrigger id="gender">
+                  <SelectValue placeholder="Seleccionar género" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="femenino">Femenino</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.genero && <p className="text-sm text-red-500 mt-1">{errors.genero}</p>}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -126,18 +197,36 @@ const FormStep = memo(({
             <Label htmlFor="branch">Sucursal</Label>
             <Select 
               required
-              value={formData.sucursal}
-              onValueChange={(value) => handleChange(value, 'sucursal')}
+              value={formData.sucursal_id?.toString() || ""}
+              onValueChange={(value) => {
+                console.log('Valor seleccionado:', value);
+                const sucursal = sucursales.find(s => s.id === parseInt(value, 10));
+                console.log('Datos de la sucursal seleccionada:', JSON.stringify(sucursal, null, 2));
+                handleChange(value, 'sucursal_id');
+              }}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar sucursal" />
+              <SelectTrigger className="w-full h-auto min-h-[2.5rem] py-2">
+                <SelectValue placeholder="Seleccionar sucursal">
+                  {selectedSucursal && (
+                    <span>{selectedSucursal.nombre}</span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="norte">Sucursal Norte</SelectItem>
-                <SelectItem value="sur">Sucursal Sur</SelectItem>
+                {Array.isArray(sucursales) && sucursales.map((sucursal) => {
+                  console.log('Renderizando sucursal:', JSON.stringify(sucursal, null, 2));
+                  return (
+                    <SelectItem 
+                      key={sucursal.id} 
+                      value={sucursal.id.toString()}
+                    >
+                      <span>{sucursal.nombre}</span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
-            {errors.sucursal && <p className="text-sm text-red-500 mt-1">{errors.sucursal}</p>}
+            {errors.sucursal_id && <p className="text-sm text-red-500 mt-1">{errors.sucursal_id}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="plan">Plan</Label>
@@ -241,23 +330,28 @@ export function NewMemberForm() {
   const [direction, setDirection] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "pending">("")
-  const [errors, setErrors] = useState({
+  const [sucursales, setSucursales] = useState<Sucursal[]>([])
+  const [errors, setErrors] = useState<FormErrors>({
     nombre: '',
     apellido: '',
     email: '',
     telefono: '',
-    sucursal: '',
+    fecha_nacimiento: '',
+    genero: '',
+    sucursal_id: '',
     plan: '',
     metodoPago: '',
     fechaPago: ''
   })
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     nombre: '',
     apellido: '',
     email: '',
     telefono: '',
-    sucursal: '',
-    plan: '', // Añadiendo el campo plan que faltaba
+    fecha_nacimiento: '',
+    genero: '',
+    sucursal_id: null,
+    plan: '',
     metodoPago: '',
     fechaPago: ''
   });
@@ -313,11 +407,19 @@ export function NewMemberForm() {
           newErrors.telefono = 'El teléfono es requerido';
           isValid = false;
         }
+        if (!formData.fecha_nacimiento) {
+          newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida';
+          isValid = false;
+        }
+        if (!formData.genero) {
+          newErrors.genero = 'El género es requerido';
+          isValid = false;
+        }
         break;
       case 2:
         // Validar sucursal y plan
-        if (!formData.sucursal) {
-          newErrors.sucursal = 'Debe seleccionar una sucursal';
+        if (!formData.sucursal_id) {
+          newErrors.sucursal_id = 'Debe seleccionar una sucursal';
           isValid = false;
         }
         if (!formData.plan) {
@@ -434,12 +536,12 @@ export function NewMemberForm() {
 
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement> | string, name?: string) => {
     let fieldName: string;
-    let value: string;
+    let value: any;
 
     if (typeof event === 'string' && name) {
       // Para Select components
       fieldName = name;
-      value = event;
+      value = name === 'sucursal_id' ? parseInt(event, 10) : event;
     } else if ('target' in event) {
       // Para Input components
       fieldName = event.target.name;
@@ -459,6 +561,34 @@ export function NewMemberForm() {
       [fieldName]: ''
     }));
   }, []);
+
+  useEffect(() => {
+    const fetchSucursales = async () => {
+      try {
+        console.log('Intentando obtener sucursales...')
+        const response = await fetch('/api/member')
+        const data = await response.json()
+        console.log('Respuesta del servidor:', data)
+        
+        if (response.ok && data.sucursales) {
+          console.log('Sucursales cargadas:', data.sucursales)
+          setSucursales(data.sucursales)
+        } else {
+          console.error('Error en la respuesta:', data)
+          toast.error("Error", {
+            description: "No se pudieron cargar las sucursales"
+          })
+        }
+      } catch (error) {
+        console.error('Error al obtener sucursales:', error)
+        toast.error("Error", {
+          description: "No se pudieron cargar las sucursales"
+        })
+      }
+    }
+
+    fetchSucursales()
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -532,6 +662,7 @@ export function NewMemberForm() {
                 handleChange={handleChange}
                 paymentStatus={paymentStatus}
                 setPaymentStatus={setPaymentStatus}
+                sucursales={sucursales}
               />
             </AnimatePresence>
           </form>
