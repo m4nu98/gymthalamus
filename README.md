@@ -1,8 +1,10 @@
 # 🏋️ Thalamus - Gym Management Dashboard
 
-<video src="https://github.com/user-attachments/assets/586d820c-cb9a-4f9a-81b1-a787b1737317" width="100%" controls>
-<video src="https://github.com/user-attachments/assets/53ba0676-c4fc-4483-8c83-323aa22c3d94" width="100%" controls>
-<img width="1512" height="948" alt="image" src="https://github.com/user-attachments/assets/8d050a55-7fb8-45c0-9859-0853809e4300" />
+<video src="https://github.com/user-attachments/assets/586d820c-cb9a-4f9a-81b1-a787b1737317" width="100%" controls></video>
+
+<video src="https://github.com/user-attachments/assets/53ba0676-c4fc-4483-8c83-323aa22c3d94" width="100%" controls></video>
+
+---
 
 **Thalamus** es una aplicación web frontend moderna y completa para la gestión integral de un gimnasio. Construida con tecnologías de vanguardia, proporciona una interfaz intuitiva para administrar miembros, rutinas, pagos, reservas y notificaciones.
 
